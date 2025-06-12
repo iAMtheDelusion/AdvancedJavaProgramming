@@ -1,5 +1,5 @@
 //////////////////////////////
-// module 02 course project //
+// module 03 course project //
 //                          //
 // devin gast               //
 // rasmussen university     //
