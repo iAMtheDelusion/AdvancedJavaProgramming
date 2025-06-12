@@ -1,32 +1,38 @@
 //////////////////////////////
 // Module 03 Course Project //
 //                          //
-// Devin Gast               //
-// Rasmussen University     //
-// Advanced Java Programming//
-// Professor Kumar          //
+// devin gast               //
+// rasmussen university     //
+// advanced java programming//
+// professor kumar          //
 //////////////////////////////
 
 package courseProjects;
 
-import java.util.Scanner;              // to read user input
-import java.util.logging.Logger;       // to write logs
+import java.util.Scanner;
+import java.util.logging.Logger;
 
 public class OrderSystemMenu {
 
-    // get the logger from our MyLogger class
+    // logger setup from our mylogger class
     private static Logger log = MyLogger.getLogger();
 
+    // scanner to get user input
+    private static Scanner scanner = new Scanner(System.in);
+
+    // program starts here
     public static void main(String[] args) {
         log.info("program started");
-        showMainMenu(); // show the menu when program starts
+        
+        // instead of showing login stuff here, we let loginmanager handle it
+        LoginManager.showLoginScreen();
     }
 
+    // this is the main menu after login
     public static void showMainMenu() {
-        Scanner scanner = new Scanner(System.in);
-        int choice = 0; // set a default value so Java doesn't complain
+        int choice = 0; // default menu option
 
-        // loop the menu until the user chooses to exit
+        // keep showing the menu until they pick "exit"
         do {
             System.out.println("\n=== swiftorders: main menu ===");
             System.out.println("1. view products");
@@ -39,14 +45,15 @@ public class OrderSystemMenu {
 
             if (scanner.hasNextInt()) {
                 choice = scanner.nextInt();
-                scanner.nextLine(); // clear the leftover newline
+                scanner.nextLine(); // clear leftover input
                 log.info("user selected option " + choice);
             } else {
-                System.out.println("invalid input. please enter a number.");
-                scanner.nextLine(); // clear the invalid input
+                System.out.println("please enter a number.");
+                scanner.nextLine(); // clear bad input
                 continue;
             }
 
+            // do something based on their menu choice
             switch (choice) {
                 case 1:
                     log.info("user selected to view products");
@@ -66,44 +73,34 @@ public class OrderSystemMenu {
                     break;
                 case 5:
                     log.info("user logged out");
-                    logout();
-                    break;
+                    return; // send them back to login screen
                 case 6:
                     log.info("user exited the program");
                     System.out.println("exiting program. goodbye!");
-                    break;
+                    System.exit(0); // shut down
                 default:
-                    log.warning("invalid menu choice entered: " + choice);
+                    log.warning("invalid menu choice: " + choice);
                     System.out.println("invalid option. try again.");
             }
 
         } while (choice != 6);
     }
 
-    // --- stub methods for each menu option ---
+    // --- placeholder menu actions ---
 
     public static void viewProducts() {
         System.out.println("\n[viewing products... (stub)]");
-        // todo: pull product list from database
     }
 
     public static void viewCartAndPlaceOrder() {
         System.out.println("\n[viewing cart / placing order... (stub)]");
-        // todo: show cart and allow order confirmation
     }
 
     public static void viewOrderHistory() {
         System.out.println("\n[viewing order history... (stub)]");
-        // todo: query orders by user
     }
 
     public static void manageProducts() {
         System.out.println("\n[managing products... (stub)]");
-        // todo: create submenu for adding, editing, deleting products
-    }
-
-    public static void logout() {
-        System.out.println("\n[logging out... returning to main menu]");
-        // todo: clear user session later
     }
 }
