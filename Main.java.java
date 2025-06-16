@@ -1,5 +1,5 @@
 //////////////////////////////
-// module 03 course project //
+// Module 04 Course Project //
 //                          //
 // devin gast               //
 // rasmussen university     //
@@ -7,95 +7,159 @@
 // professor kumar          //
 //////////////////////////////
 
-package courseProjects; // this is the package name, has to match your folder in eclipse
+package courseProjects;
 
-import java.util.Scanner; // lets us read input from the user
-import java.util.logging.Logger; // for logging stuff like actions and errors
+import java.util.Scanner; // lets us get user input
+import java.util.logging.Logger; // used for logging stuff
+import java.util.ArrayList; // lets us make lists
+import java.util.Arrays; // helps us quickly load the product list
 
-public class OrderSystemMenu { // this is the main class that runs the menu
+public class OrderSystemMenu {
 
-    private static Logger log = MyLogger.getLogger(); // this grabs our logger from the mylogger class
+    private static Logger log = MyLogger.getLogger(); // grabs logger from mylogger
 
-    private static Scanner scanner = new Scanner(System.in); // scanner lets us get input from the user
+    private static Scanner scanner = new Scanner(System.in); // scanner to read user input
 
-    public static void main(String[] args) { // this is where the program actually starts
-        log.info("program started"); // log that the program started
-        LoginManager.showLoginScreen(); // show the login screen first, handled in another file
+    // fake list of available products
+    static ArrayList<String> products = new ArrayList<>(Arrays.asList(
+        "laptop - $999", "keyboard - $49", "mouse - $25", "monitor - $199"
+    ));
+
+    // user's shopping cart
+    static ArrayList<String> cart = new ArrayList<>();
+
+    // saved order history
+    static ArrayList<String> orderHistory = new ArrayList<>();
+
+    public static void main(String[] args) {
+        log.info("program started"); // log that the app started
+        LoginManager.showLoginScreen(); // take user to login screen first
     }
 
-    public static void showMainMenu() { // this method shows the main menu
-        int choice = 0; // this holds the user’s menu choice, starting at 0
+    // this is the menu the user sees after login
+    public static void showMainMenu() {
+        int choice = 0; // user’s menu pick
 
-        do { // this loop keeps going until the user exits
-            System.out.println("\n=== swiftorders: main menu ==="); // title of the menu
-            System.out.println("1. view products"); // first menu option
-            System.out.println("2. view cart / place order"); // second option
-            System.out.println("3. view order history"); // third option
-            System.out.println("4. manage products"); // fourth option, probably for admin
-            System.out.println("5. logout"); // goes back to login screen
-            System.out.println("6. exit"); // shuts the whole thing down
-            System.out.print("choose an option: "); // prompt the user
+        do {
+            System.out.println("\n=== swiftorders: main menu ===");
+            System.out.println("1. view products");
+            System.out.println("2. view cart / place order");
+            System.out.println("3. view order history");
+            System.out.println("4. manage products");
+            System.out.println("5. logout");
+            System.out.println("6. exit");
+            System.out.print("choose an option: ");
 
-            if (scanner.hasNextInt()) { // check if they typed a number
-                choice = scanner.nextInt(); // grab the number
-                scanner.nextLine(); // clear the leftover line from pressing enter
-                log.info("user selected option " + choice); // log the choice they picked
-            } else { // if they typed something that’s not a number
-                System.out.println("please enter a number."); // tell them what went wrong
-                scanner.nextLine(); // clear the bad input
-                continue; // go back to the top of the menu
+            if (scanner.hasNextInt()) {
+                choice = scanner.nextInt(); // get their number input
+                scanner.nextLine(); // clean up the leftover input
+                log.info("user selected option " + choice); // log it
+            } else {
+                System.out.println("please enter a number."); // not a number? tell them
+                scanner.nextLine(); // clear bad input
+                continue; // skip to top
             }
 
-            // this switch decides what to do based on the choice
             switch (choice) {
-                case 1: // if they chose 1
-                    log.info("user selected to view products"); // log it
-                    viewProducts(); // run the viewProducts method
+                case 1:
+                    log.info("user selected to view products");
+                    viewProducts(); // show product list
                     break;
-                case 2: // if they chose 2
-                    log.info("user selected to view cart / place order"); // log it
-                    viewCartAndPlaceOrder(); // show the cart and let them confirm
+                case 2:
+                    log.info("user selected to view cart / place order");
+                    viewCartAndPlaceOrder(); // let them order
                     break;
-                case 3: // if they chose 3
-                    log.info("user selected to view order history"); // log it
-                    viewOrderHistory(); // show them their past orders
+                case 3:
+                    log.info("user selected to view order history");
+                    viewOrderHistory(); // show past orders
                     break;
-                case 4: // if they chose 4
-                    log.warning("user accessed manage products menu"); // log this as a warning (admin-ish)
-                    manageProducts(); // go to product management screen
+                case 4:
+                    log.warning("user accessed manage products menu");
+                    manageProducts(); // placeholder for admin stuff
                     break;
-                case 5: // if they chose 5
-                    log.info("user logged out"); // log that they logged out
-                    return; // stop this method and go back to login
-                case 6: // if they chose 6
-                    log.info("user exited the program"); // log they’re done
-                    System.out.println("exiting program. goodbye!"); // tell them bye
-                    System.exit(0); // shut the whole program down
-                default: // if they typed something weird
-                    log.warning("invalid menu choice: " + choice); // log that it was invalid
-                    System.out.println("invalid option. try again."); // let them know
+                case 5:
+                    log.info("user logged out");
+                    return; // go back to login
+                case 6:
+                    log.info("user exited the program");
+                    System.out.println("exiting program. goodbye!");
+                    System.exit(0); // shut it down
+                default:
+                    log.warning("invalid menu choice: " + choice);
+                    System.out.println("invalid option. try again.");
             }
 
-        } while (choice != 6); // loop keeps going until they type 6 to exit
+        } while (choice != 6); // loop ends if they hit 6
     }
 
-    // just a fake method for now, will eventually pull from the product database
+    // lets user view products and add one to cart
     public static void viewProducts() {
-        System.out.println("\n[viewing products... (stub)]"); // placeholder message
+        System.out.println("\n=== available products ===");
+
+        for (int i = 0; i < products.size(); i++) {
+            System.out.println((i + 1) + ". " + products.get(i)); // show the list numbered
+        }
+
+        System.out.print("type the number to add to cart, or 0 to go back: ");
+        int pick = scanner.nextInt();
+        scanner.nextLine(); // clean up input
+
+        if (pick > 0 && pick <= products.size()) {
+            String item = products.get(pick - 1);
+            cart.add(item); // add the product to the cart
+            log.info("added to cart: " + item);
+            System.out.println(item + " added to your cart!");
+        } else if (pick == 0) {
+            System.out.println("going back to menu...");
+        } else {
+            System.out.println("invalid choice.");
+        }
     }
 
-    // fake method for viewing cart and confirming an order
+    // shows what's in the cart and places the order
     public static void viewCartAndPlaceOrder() {
-        System.out.println("\n[viewing cart / placing order... (stub)]"); // placeholder
+        if (cart.isEmpty()) {
+            System.out.println("\ncart is empty."); // nothing to order
+            return;
+        }
+
+        System.out.println("\n=== your cart ===");
+        for (String item : cart) {
+            System.out.println("- " + item); // list each item
+        }
+
+        System.out.print("would you like to place this order? (yes/no): ");
+        String choice = scanner.nextLine();
+
+        if (choice.equalsIgnoreCase("yes")) {
+            orderHistory.addAll(cart); // save the items to history
+            log.info("order placed: " + cart.toString());
+            cart.clear(); // empty the cart
+            System.out.println("order placed successfully!");
+        } else {
+            System.out.println("order not placed.");
+        }
     }
 
-    // fake method for showing past orders
+    // shows all past orders
     public static void viewOrderHistory() {
-        System.out.println("\n[viewing order history... (stub)]"); // placeholder
+        System.out.println("\n=== order history ===");
+
+        if (orderHistory.isEmpty()) {
+            System.out.println("no orders yet.");
+            return;
+        }
+
+        for (String order : orderHistory) {
+            System.out.println("- " + order); // show each past item
+        }
+
+        log.info("order history viewed");
     }
 
-    // fake method for managing the product list
+    // placeholder for admin stuff like adding/removing products
     public static void manageProducts() {
-        System.out.println("\n[managing products... (stub)]"); // placeholder
+        System.out.println("\n[managing products... (stub)]");
+        // in the future this could add/edit/delete items from the products list
     }
 }
