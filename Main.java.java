@@ -1,10 +1,10 @@
 //////////////////////////////
-// Module 04 Course Project //
+// Module 05 Course Project //
 //                          //
-// devin gast               //
-// rasmussen university     //
-// advanced java programming//
-// professor kumar          //
+// Devin Gast               //
+// Rasmussen University     //
+// Advanced Java Programming//
+// Professor Kumar          //
 //////////////////////////////
 
 package courseProjects;
@@ -13,20 +13,30 @@ import java.util.Scanner; // lets us get user input
 import java.util.logging.Logger; // used for logging stuff
 import java.util.ArrayList; // lets us make lists
 import java.util.Arrays; // helps us quickly load the product list
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
 
 public class OrderSystemMenu {
 
     private static Logger log = MyLogger.getLogger(); // grabs logger from mylogger
 
     private static Scanner scanner = new Scanner(System.in); // scanner to read user input
+    
+ // this stores the product ids the user added
+    static ArrayList<Integer> cart = new ArrayList<>();
+
+    // this is set after successful login
+    public static int loggedInUserId = -1;
+
 
     // fake list of available products
     static ArrayList<String> products = new ArrayList<>(Arrays.asList(
         "laptop - $999", "keyboard - $49", "mouse - $25", "monitor - $199"
     ));
-
-    // user's shopping cart
-    static ArrayList<String> cart = new ArrayList<>();
 
     // saved order history
     static ArrayList<String> orderHistory = new ArrayList<>();
@@ -96,50 +106,143 @@ public class OrderSystemMenu {
     public static void viewProducts() {
         System.out.println("\n=== available products ===");
 
-        for (int i = 0; i < products.size(); i++) {
-            System.out.println((i + 1) + ". " + products.get(i)); // show the list numbered
-        }
+        try {
+            // connect to the database
+            Connection conn = DBConnection.getConnection();
 
-        System.out.print("type the number to add to cart, or 0 to go back: ");
-        int pick = scanner.nextInt();
-        scanner.nextLine(); // clean up input
+            // get all products that still have stock
+            String sql = "SELECT * FROM products WHERE quantity > 0";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            ResultSet result = stmt.executeQuery();
 
-        if (pick > 0 && pick <= products.size()) {
-            String item = products.get(pick - 1);
-            cart.add(item); // add the product to the cart
-            log.info("added to cart: " + item);
-            System.out.println(item + " added to your cart!");
-        } else if (pick == 0) {
-            System.out.println("going back to menu...");
-        } else {
-            System.out.println("invalid choice.");
+            // this keeps track of product ids we show
+            ArrayList<Integer> productIds = new ArrayList<>();
+
+            int optionNumber = 1; // just used for display
+
+            // go through each product
+            while (result.next()) {
+                int id = result.getInt("product_id");
+                String name = result.getString("name");
+                String desc = result.getString("description");
+                int stock = result.getInt("quantity");
+                double price = result.getDouble("price");
+
+                // print out info
+                System.out.println(optionNumber + ". " + name + " - $" + price + " (" + stock + " in stock)");
+                System.out.println("    " + desc); // print description on second line
+
+                productIds.add(id); // remember which one this is
+                optionNumber++;
+            }
+
+            // if no products showed up
+            if (productIds.size() == 0) {
+                System.out.println("no products available.");
+                return;
+            }
+
+            // ask the user what they want to do
+            System.out.print("type the number to add to cart, or 0 to go back: ");
+            int pick = scanner.nextInt();
+            scanner.nextLine(); // clear the leftover input
+
+            if (pick > 0 && pick <= productIds.size()) {
+                int chosenId = productIds.get(pick - 1); // find the real product id
+                cart.add(chosenId); // save that id into the cart
+                log.info("added to cart: product_id = " + chosenId);
+                System.out.println("product added to cart.");
+            } else if (pick == 0) {
+                System.out.println("going back to menu...");
+            } else {
+                System.out.println("not a valid option.");
+            }
+
+            conn.close(); // always close the database
+
+        } catch (SQLException e) {
+            System.out.println("something went wrong while showing products.");
+            e.printStackTrace();
         }
     }
 
+
     // shows what's in the cart and places the order
     public static void viewCartAndPlaceOrder() {
+        // first check if the cart is empty
         if (cart.isEmpty()) {
-            System.out.println("\ncart is empty."); // nothing to order
+            System.out.println("\nyour cart is empty.");
             return;
         }
 
         System.out.println("\n=== your cart ===");
-        for (String item : cart) {
-            System.out.println("- " + item); // list each item
-        }
 
-        System.out.print("would you like to place this order? (yes/no): ");
-        String choice = scanner.nextLine();
+        try {
+            Connection conn = DBConnection.getConnection();
 
-        if (choice.equalsIgnoreCase("yes")) {
-            orderHistory.addAll(cart); // save the items to history
-            log.info("order placed: " + cart.toString());
-            cart.clear(); // empty the cart
-            System.out.println("order placed successfully!");
-        } else {
-            System.out.println("order not placed.");
+            // here, we are going to display the product names from the ids in the cart
+            for (int id : cart) {
+                String sql = "SELECT name FROM products WHERE product_id = ?";
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                stmt.setInt(1, id);
+
+                ResultSet result = stmt.executeQuery();
+
+                if (result.next()) {
+                    System.out.println("- " + result.getString("name"));
+                }
+            }
+
+            // ask the user if they want to place the order
+            System.out.print("place this order? (yes/no): ");
+            String answer = scanner.nextLine();
+
+            if (answer.equalsIgnoreCase("yes")) {
+                // 1. create the order row
+                String insertOrder = "INSERT INTO orders (user_id) VALUES (?)";
+                PreparedStatement orderStmt = conn.prepareStatement(insertOrder, Statement.RETURN_GENERATED_KEYS);
+                orderStmt.setInt(1, loggedInUserId);
+                orderStmt.executeUpdate();
+
+                // get the order id we just created
+                ResultSet keys = orderStmt.getGeneratedKeys();
+                keys.next();
+                int orderId = keys.getInt(1);
+
+                // 2. loop through cart and create order_items rows + subtract stock
+                for (int id : cart) {
+                    // insert into order_items
+                    String insertItem = "INSERT INTO order_items (order_id, product_id, quantity) VALUES (?, ?, ?)";
+                    PreparedStatement itemStmt = conn.prepareStatement(insertItem);
+                    itemStmt.setInt(1, orderId);
+                    itemStmt.setInt(2, id);
+                    itemStmt.setInt(3, 1); // we assume quantity = 1 for now
+                    itemStmt.executeUpdate();
+
+                    // subtract 1 from stock in products table
+                    String updateStock = "UPDATE products SET quantity = quantity - 1 WHERE product_id = ?";
+                    PreparedStatement stockStmt = conn.prepareStatement(updateStock);
+                    stockStmt.setInt(1, id);
+                    stockStmt.executeUpdate();
+                }
+
+                log.info("order placed by user_id = " + loggedInUserId);
+                System.out.println("your order was placed successfully!");
+
+                cart.clear(); // empty the cart after order is done
+
+            } else {
+                System.out.println("order canceled.");
+            }
+
+            conn.close(); // close it all down
+
+        } catch (SQLException e) {
+            System.out.println("something went wrong placing the order.");
+            e.printStackTrace();
         }
     }
+
 
     // shows all past orders
     public static void viewOrderHistory() {
@@ -157,9 +260,7 @@ public class OrderSystemMenu {
         log.info("order history viewed");
     }
 
-    // placeholder for admin stuff like adding/removing products
-    public static void manageProducts() {
-        System.out.println("\n[managing products... (stub)]");
-        // in the future this could add/edit/delete items from the products list
+    public static void manageProducts() { // manage the various products
+        ProductManager.showProductMenu(); // hand it off to the new class
     }
 }
