@@ -1,131 +1,146 @@
-package courseProjects; // same package
+package courseProjects;
 
-import java.sql.*; // for database stuff
-import java.util.Scanner; // for input
+import java.sql.*;
+import java.util.Scanner;
 
 public class ProductManager {
 
-    // scanner to ask user stuff
-    private static Scanner scanner = new Scanner(System.in);
-
-    // menu for managing products
     public static void showProductMenu() {
-        while (true) {
-            System.out.println("\n=== manage products ===");
-            System.out.println("1. view all products");
-            System.out.println("2. add new product");
-            System.out.println("3. update product quantity");
-            System.out.println("4. delete a product");
-            System.out.println("5. go back");
-            System.out.print("pick something: ");
+        Scanner scanner = new Scanner(System.in);
 
-            String choice = scanner.nextLine();
+        int choice;
+        do {
+            System.out.println("\n=== product manager ===");
+            System.out.println("1. view all products");
+            System.out.println("2. add product");
+            System.out.println("3. edit product");
+            System.out.println("4. delete product");
+            System.out.println("5. go back to main menu");
+            System.out.print("choose an option: ");
+
+            choice = scanner.nextInt();
+            scanner.nextLine(); // clear input
 
             switch (choice) {
-                case "1":
-                    showAllProducts();
+                case 1:
+                    viewProducts();
                     break;
-                case "2":
-                    addNewProduct();
+                case 2:
+                    addProduct(scanner);
                     break;
-                case "3":
-                    updateProductQuantity();
+                case 3:
+                    editProduct(scanner);
                     break;
-                case "4":
-                    deleteProduct();
+                case 4:
+                    deleteProduct(scanner);
                     break;
-                case "5":
-                    return; // go back to main menu
+                case 5:
+                    return;
                 default:
-                    System.out.println("not a valid option.");
+                    System.out.println("invalid choice.");
             }
-        }
+
+        } while (choice != 5);
     }
 
-    // shows every product in the db
-    private static void showAllProducts() {
+    private static void viewProducts() {
         try (Connection conn = DBConnection.getConnection()) {
             String sql = "SELECT * FROM products";
             PreparedStatement stmt = conn.prepareStatement(sql);
             ResultSet rs = stmt.executeQuery();
 
-            System.out.println("\n=== product list ===");
+            System.out.println("\n--- all products ---");
 
             while (rs.next()) {
-                int id = rs.getInt("product_id");
-                String name = rs.getString("name");
-                double price = rs.getDouble("price");
-                int quantity = rs.getInt("quantity");
-
-                System.out.println(id + ". " + name + " - $" + price + " (stock: " + quantity + ")");
+                System.out.println(rs.getInt("product_id") + ": " +
+                    rs.getString("name") + " - $" + rs.getDouble("price") +
+                    " [" + rs.getInt("quantity") + " in stock]");
+                System.out.println("    " + rs.getString("description"));
             }
 
         } catch (SQLException e) {
-            System.out.println("error showing products");
+            System.out.println("error viewing products.");
             e.printStackTrace();
         }
     }
 
-    // adds a new product
-    private static void addNewProduct() {
-        System.out.print("product name: ");
-        String name = scanner.nextLine();
-
-        System.out.print("price: ");
-        double price = Double.parseDouble(scanner.nextLine());
-
-        System.out.print("quantity: ");
-        int quantity = Integer.parseInt(scanner.nextLine());
-
+    private static void addProduct(Scanner scanner) {
         try (Connection conn = DBConnection.getConnection()) {
-            String sql = "INSERT INTO products (name, price, quantity) VALUES (?, ?, ?)";
+            System.out.print("product name: ");
+            String name = scanner.nextLine();
+
+            System.out.print("description: ");
+            String description = scanner.nextLine();
+
+            System.out.print("price: ");
+            double price = scanner.nextDouble();
+
+            System.out.print("quantity: ");
+            int quantity = scanner.nextInt();
+            scanner.nextLine(); // clear input
+
+            String sql = "INSERT INTO products (name, description, price, quantity) VALUES (?, ?, ?, ?)";
             PreparedStatement stmt = conn.prepareStatement(sql);
             stmt.setString(1, name);
-            stmt.setDouble(2, price);
-            stmt.setInt(3, quantity);
+            stmt.setString(2, description);
+            stmt.setDouble(3, price);
+            stmt.setInt(4, quantity);
             stmt.executeUpdate();
 
             System.out.println("product added!");
 
         } catch (SQLException e) {
-            System.out.println("couldn't add product.");
+            System.out.println("error adding product.");
             e.printStackTrace();
         }
     }
 
-    // updates how many of a product we have
-    private static void updateProductQuantity() {
-        System.out.print("product id to update: ");
-        int id = Integer.parseInt(scanner.nextLine());
-
-        System.out.print("new quantity: ");
-        int quantity = Integer.parseInt(scanner.nextLine());
-
+    private static void editProduct(Scanner scanner) {
         try (Connection conn = DBConnection.getConnection()) {
-            String sql = "UPDATE products SET quantity = ? WHERE product_id = ?";
+            System.out.print("enter product ID to edit: ");
+            int id = scanner.nextInt();
+            scanner.nextLine(); // clear
+
+            System.out.print("new name: ");
+            String name = scanner.nextLine();
+
+            System.out.print("new description: ");
+            String desc = scanner.nextLine();
+
+            System.out.print("new price: ");
+            double price = scanner.nextDouble();
+
+            System.out.print("new quantity: ");
+            int qty = scanner.nextInt();
+            scanner.nextLine();
+
+            String sql = "UPDATE products SET name = ?, description = ?, price = ?, quantity = ? WHERE product_id = ?";
             PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setInt(1, quantity);
-            stmt.setInt(2, id);
+            stmt.setString(1, name);
+            stmt.setString(2, desc);
+            stmt.setDouble(3, price);
+            stmt.setInt(4, qty);
+            stmt.setInt(5, id);
             int rows = stmt.executeUpdate();
 
             if (rows > 0) {
-                System.out.println("quantity updated.");
+                System.out.println("product updated!");
             } else {
                 System.out.println("product not found.");
             }
 
         } catch (SQLException e) {
-            System.out.println("error updating quantity.");
+            System.out.println("error updating product.");
             e.printStackTrace();
         }
     }
 
-    // deletes a product
-    private static void deleteProduct() {
-        System.out.print("product id to delete: ");
-        int id = Integer.parseInt(scanner.nextLine());
-
+    private static void deleteProduct(Scanner scanner) {
         try (Connection conn = DBConnection.getConnection()) {
+            System.out.print("enter product ID to delete: ");
+            int id = scanner.nextInt();
+            scanner.nextLine(); // clear input
+
             String sql = "DELETE FROM products WHERE product_id = ?";
             PreparedStatement stmt = conn.prepareStatement(sql);
             stmt.setInt(1, id);
@@ -134,7 +149,7 @@ public class ProductManager {
             if (rows > 0) {
                 System.out.println("product deleted.");
             } else {
-                System.out.println("no product found with that id.");
+                System.out.println("product not found.");
             }
 
         } catch (SQLException e) {
